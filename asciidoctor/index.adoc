@@ -1,0 +1,3 @@
+= Creating applications with Grails, Angular JS and Spring Security
+
+Álvaro Sánchez-Mariscal <https://github.com/alvarosanchez[icon:github[] @alvarosanchez] https://twitter.com/alvaro_sanchez[icon:twitter[] @alvaro_sanchez]>
