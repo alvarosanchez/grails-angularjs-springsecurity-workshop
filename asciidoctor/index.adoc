@@ -572,7 +572,7 @@ image::todo.png[]
 icon:hand-o-right[] With your browser's developer console open, try to create new todos, mark them as complete or
 delete them, and you will see how Angular JS issues HTTP request to the backend we created in the first exercise.
 
-== Adding security with Spring Security REST (45 minutes)
+== Adding security with Spring Security REST (50 minutes)
 
 TIP: For this exercise, you can just continue working in the same project as the previous exercise. The final solution
 is provided to you in the `ex03/solution` folder.
@@ -653,6 +653,128 @@ A base64-encoded JSON like:
 Depends on the algorithm specified on the header, it can be a digital signature of the base64-encoded header and claims,
 or an encryption of them using RSA.
 
-=== Securing the REST API (15 minutes)
+=== Securing the REST API (20 minutes)
+
+icon:hand-o-right[] To install the plugin, add this to your `dependencies { ... }` block in `build.gradle`:
+
+[source,groovy]
+----
+compile "org.grails.plugins:spring-security-rest:2.0.0.M2"
+----
+
+icon:hand-o-right[] Run `grails compile` to resolve dependencies and ensure everything is correct. If necessary,
+refresh also the project in your IDE (ie: refresh Gradle project in Intellij IDEA). Then, we need to generate our User,
+Role and UserRole domain classes:
+
+----
+$ grails s2-quickstart todo User Role
+| Creating User class 'User' and Role class 'Role' in package 'todo'
+| Rendered template Person.groovy.template to destination grails-app/domain/todo/User.groovy
+| Rendered template Authority.groovy.template to destination grails-app/domain/todo/Role.groovy
+| Rendered template PersonAuthority.groovy.template to destination grails-app/domain/todo/UserRole.groovy
+|
+************************************************************
+* Created security-related domain classes. Your            *
+* grails-app/conf/application.groovy has been updated with *
+* the class names of the configured domain classes;        *
+* please verify that the values are correct.               *
+************************************************************
+----
+
+icon:hand-o-right[] The above command will create the file `grails-app/conf/application.groovy`. In order to secure our
+API, we need to replace the chain with pattern `/**` with this one:
+
+[source,groovy]
+----
+[pattern: '/api/**',         filters: 'JOINED_FILTERS,-anonymousAuthenticationFilter,-exceptionTranslationFilter,-authenticationProcessingFilter,-securityContextPersistenceFilter,-rememberMeAuthenticationFilter']
+----
+
+icon:hand-o-right[] Notice that we are appling a stateless chain to the pattern `/api/**`, so we need to reflect this
+change in a number of places:
+
+* In the URL mappings file.
+* In the `Todo.js` Angular domain.
+
+icon:hand-o-right[] Now, add some data in `BootStrap.groovy`:
+
+[source,groovy]
+----
+Role admin = new Role("ROLE_ADMIN").save()
+User user = new User("user", "pass").save()
+UserRole.create(user, admin, true)
+----
+
+icon:hand-o-right[] Finally, let's restrict our API to be accessed only for `ROLE_ADMIN` users:
+
+[source,groovy]
+.`TodoController.groovy`
+----
+package todo
+
+import grails.plugin.springsecurity.annotation.Secured
+import grails.rest.RestfulController
+
+@Secured(['ROLE_ADMIN'])
+class TodoController extends RestfulController {
+
+...
+
+}
+----
+
+icon:hand-o-right[] If you run the application now and try to access the endpoint with `curl`, you'll receive an error:
+
+[source,javascript]
+----
+$ curl -i 0:8080/api/todos
+HTTP/1.1 401 Unauthorized
+Server: Apache-Coyote/1.1
+WWW-Authenticate: Bearer
+Content-Type: application/json;charset=UTF-8
+Transfer-Encoding: chunked
+Date: Wed, 01 Jun 2016 03:59:56 GMT
+
+{"timestamp":1464753596208,"status":401,"error":"Unauthorized","message":"No message available","path":"/api/todos"}
+----
+
+As we saw in the introduction, we need to obtain a token first, and then pass it to the endpoint.
+
+icon:hand-o-right[] To get a token, make a request to the login endpoint provided by the plugin:
+
+[source,javascript]
+----
+$ curl -i -H "Content-Type: application/json" --data '{"username":"user","password":"pass"}' 0:8080/api/login
+HTTP/1.1 200 OK
+Server: Apache-Coyote/1.1
+Cache-Control: no-store
+Pragma: no-cache
+Content-Type: application/json;charset=UTF-8
+Content-Length: 2152
+Date: Wed, 01 Jun 2016 04:04:51 GMT
+
+{"username":"user","roles":["ROLE_ADMIN"],"token_type":"Bearer","access_token":"eyJhbGciOiJIUzI1NiJ9...","expires_in":3600,"refresh_token":"eyJhbGciOiJIUzI1NiJ9...."}
+----
+
+icon:hand-o-right[] Copy the `access_token` part of the response, and make a request to the original endpoint, passing
+the token in a header:
+
+[source,javascript]
+----
+$ curl -i -H "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...." 0:8080/api/todos
+HTTP/1.1 200 OK
+Server: Apache-Coyote/1.1
+X-Application-Context: application:development
+Content-Type: application/json;charset=UTF-8
+Transfer-Encoding: chunked
+Date: Wed, 01 Jun 2016 04:08:14 GMT
+
+[{"_links":{"self":{"href":"http://0:8080/api/todos/1","hreflang":"en_US","type":"application/hal+json"}},"id":1,"description":"Todo 1","done":false},{"_links":{"self":{"href":"http://0:8080/api/todos/2","hreflang":"en_US","type":"application/hal+json"}},"id":2,"description":"Todo 2","done":false},{"_links":{"self":{"href":"http://0:8080/api/todos/3","hreflang":"en_US","type":"application/hal+json"}},"id":3,"description":"Todo 3","done":false},{"_links":{"self":{"href":"http://0:8080/api/todos/4","hreflang":"en_US","type":"application/hal+json"}},"id":4,"description":"Todo 4","done":false},{"_links":{"self":{"href":"http://0:8080/api/todos/5","hreflang":"en_US","type":"application/hal+json"}},"id":5,"description":"Todo 5","done":false}]
+----
+
+And voilà! Our API is now sucessfully secured with Spring Security REST.
 
 === Integrating AngularJS with Spring Security REST (20 minutes)
+
+The final step of this workshop is to introduce a login workflow in the front-end, and put the necessary Angular JS
+infrastructure to make sure that the token, once obtained, is transparently sent on every request.
+

@@ -6,7 +6,7 @@ angular
 
 function Todo($resource) {
     var Todo = $resource(
-        "todos/:id",
+        "api/todos/:id",
         {"id": "@id"},
         {"update": {method: "PUT"}, "list": {method: "GET", isArray: true}}
     );
