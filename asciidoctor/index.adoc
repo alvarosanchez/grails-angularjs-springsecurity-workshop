@@ -5,7 +5,7 @@
 <a href="https://github.com/alvarosanchez/grails-angularjs-springsecurity-workshop"><img style="position: fixed; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
 ++++
 
-== Getting started (10 minutes)
+== Getting started
 
 To complete this workshop, you should have installed locally:
 
@@ -29,6 +29,9 @@ exercise is self-explanatory. To highlight actions you actually need to perform,
 :numbered:
 
 == Creating a Grails REST API (50 minutes)
+
+TIP: Change to the `ex01` folder to start working on this exercise. The final solution is provided to you in the
+`ex01/solution` folder.
 
 The first exercise in this workshop is to create a Grails application that will contain a REST API. The application
 will be a todo app.
@@ -332,7 +335,10 @@ json {
 
 icon:hand-o-right[] Hit the `/todos` endpoint again to see the difference.
 
-== Creating an AngularJS front-end (40 minutes)
+== Creating an AngularJS front-end (50 minutes)
+
+TIP: Change to the `ex02` folder to start working on this exercise. The final solution is provided to you in the
+`ex02/solution` folder.
 
 === The `angular` profile (10 minutes).
 
@@ -393,7 +399,7 @@ Also, if you load the root URL, you should see something like:
 
 image::localhost.png[]
 
-=== Writing the AngularJS code (30 minutes)
+=== Writing the AngularJS code (40 minutes)
 
 WARNING: Ultimately it's not a goal of this workshop that you become a master in Angular JS development. A basic Angular JS
 knowledge is required to understand the steps performed through the exercise.
@@ -568,8 +574,85 @@ delete them, and you will see how Angular JS issues HTTP request to the backend 
 
 == Adding security with Spring Security REST (45 minutes)
 
-=== Introduction to Spring Security (15 minutes)
+TIP: For this exercise, you can just continue working in the same project as the previous exercise. The final solution
+is provided to you in the `ex03/solution` folder.
+
+=== Introduction to Spring Security REST (10 minutes)
+
+http://alvarosanchez.github.io/grails-spring-security-rest/[Spring Security REST] is a Grails plugin that allows you to
+use Spring Security for a stateless, token-based, RESTful authentication.
+
+The typical flow could be the following:
+
+.Sequence diagram overview of the plugin behavior
+image::http://alvarosanchez.github.io/grails-spring-security-rest/latest/docs/images/rest.png[]
+
+. The client application requests and endpoint that requires authentication, so the server responds with a 401 response.
+. The client redirects the user to the login form.
+. The user enter credentials, and the client sends a request to the authentication endpoint. The server validates credentials, and if valid, generates, stores and sends back a token to the client.
+. The client then stores the token internally. It will be sent on every API method request.
+. The client sends again a request to the protected resource, passing the token as an HTTP header.
+. The server validates the token, and if valid, executes the actual operation requested.
+
+As per the http://en.wikipedia.org/wiki/Representational_state_transfer[REST definition], the client is transferring its
+state on every request so the server is truly stateless.
+
+The plugin helps you to wire your existing Spring Security authentication mechanism, provides you
+with ready-to-use token generation strategies and comes prepackaged with JWT, Memcached, GORM, Redis
+and Grails Cache support for token storage.
+
+In this exercise we will use JWT. JSON Web Token (JWT) is an http://tools.ietf.org/html/draft-ietf-oauth-json-web-token[IETF standard] (in progress)
+which defines a secure way to encapsulate arbitrary data that can be sent over unsecure URL's.
+
+Generally speaking, JWT's can be useful in the following use cases:
+
+* When generating "one click" action emails, like "delete this comment" or "add this to favorites". Instead of giving
+  the users URL's like `/comment/delete/123`, you can give them something like `/comment/delete/<JWT_TOKEN>`, where the
+  `JWT_TOKEN` contains encapsulated information about the user and the comment, in a safe way, so authentication is not required.
+
+* To achieve single sign-on, by sharing a JWT across applications.
+
+In the context of authentication and authorization, JWT will help you implement a stateless implementation, as the
+principal information is stored directly in the JWT.
+
+This is how a JWT looks like:
+
+image::http://alvarosanchez.github.io/grails-spring-security-rest/latest/docs/images/jwt.png[]
+
+===== Header
+
+A base64-encoded JSON like:
+
+[source,javascript]
+----
+{
+    "alg": "HS256",
+    "typ": "JWT"
+}
+----
+
+===== Claims
+
+A base64-encoded JSON like:
+
+[source,javascript]
+----
+{
+    "exp": 1422990129,
+    "sub": "jimi",
+    "roles": [
+        "ROLE_ADMIN",
+        "ROLE_USER"
+    ],
+    "iat": 1422986529
+}
+----
+
+===== Signature
+
+Depends on the algorithm specified on the header, it can be a digital signature of the base64-encoded header and claims,
+or an encryption of them using RSA.
 
 === Securing the REST API (15 minutes)
 
-=== Integrating AngularJS with Spring Security REST (15 minutes)
+=== Integrating AngularJS with Spring Security REST (20 minutes)
