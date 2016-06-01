@@ -1,0 +1,15 @@
+<table>
+    <tbody>
+    <tr ng-repeat="t in vm.todos">
+        <td>
+            {{t.description}}
+        </td>
+        <td>
+            <input type="checkbox" ng-model="t.done" ng-click="vm.update(t)" />
+        </td>
+        <td>
+            <button type="button" ng-click="vm.delete(t)">Delete</button>
+        </td>
+    </tr>
+    </tbody>
+</table>
