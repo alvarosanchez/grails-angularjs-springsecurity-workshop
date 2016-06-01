@@ -82,12 +82,14 @@
     <div id="content" role="main">
         <section class="row colset-2-its">
             <!-- Our code will be here -->
-            <div class="form">
-                <input type="text" ng-model="vm.newTodo.description" />
-                <button type="button" ng-click="vm.save()">add</button>
+            <div ng-switch="vm.authenticated">
+                <div ng-switch-when="true">
+                    <div ng-include="'/todo/list.html'"></div>
+                </div>
+                <div ng-switch-when="false">
+                    <div ng-include="'/todo/login.html'"></div>
+                </div>
             </div>
-
-            <div ng-include="'/todo/list.html'"></div>
         </section>
     </div>
 

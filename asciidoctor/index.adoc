@@ -778,3 +778,123 @@ And voilà! Our API is now sucessfully secured with Spring Security REST.
 The final step of this workshop is to introduce a login workflow in the front-end, and put the necessary Angular JS
 infrastructure to make sure that the token, once obtained, is transparently sent on every request.
 
+icon:hand-o-right[] First of all, in `index.gsp` we need to display a login form if the user is not authenticated. Put
+the following code as the body of the `<section>` tag:
+
+[source,javascript]
+----
+<div ng-switch="vm.authenticated">
+    <div ng-switch-when="true">
+        <div ng-include="'/todo/list.html'"></div>
+    </div>
+    <div ng-switch-when="false">
+        <div ng-include="'/todo/login.html'"></div>
+    </div>
+</div>
+----
+
+icon:hand-o-right[] Then, create such template:
+
+[source,html]
+.`grails-app/assets/javascripts/todo/templates/login.tpl.html`
+----
+<table>
+    <tbody>
+    <tr>
+        <td>
+            Username:
+        </td>
+        <td>
+            <input type="text" name="username" ng-model="vm.user.username" />
+        </td>
+    </tr>
+    <tr>
+        <td>
+            Password:
+        </td>
+        <td>
+            <input type="password" name="password" ng-model="vm.user.password" />
+        </td>
+    </tr>
+    <tr>
+        <td colspan="2">
+            <button type="button" ng-click="vm.login()">Login</button>
+        </td>
+    </tr>
+    </tbody>
+</table>
+----
+
+icon:hand-o-right[] Now, we need to put the necessary logic in the controller to handle the authentication, as well as
+the submission of the token once obtained:
+
+[source,javascript]
+.`grails-app/assets/javascripts/todo/controllers/todoController.js`
+----
+//= wrapped
+
+angular
+    .module("todo")
+    .factory('authInterceptor', function ($rootScope, $window) {
+        return {
+            request: function (config) {
+                config.headers = config.headers || {};
+                if ($window.sessionStorage.token) {
+                    config.headers.Authorization = 'Bearer ' + $window.sessionStorage.token;
+                }
+                return config;
+            }
+        };
+    })
+    .config(function ($httpProvider) {
+        $httpProvider.interceptors.push('authInterceptor');
+    })
+    .controller("TodoController", TodoController);
+
+function TodoController(Todo, $http, $window) {
+    var vm = this;
+
+    vm.authenticated = false;
+    vm.user = {};
+
+    vm.todos = [];
+
+    vm.newTodo = new Todo();
+
+    vm.login = function () {
+        $http.post('/api/login', {
+            username: vm.user.username,
+            password: vm.user.password
+        }).then(function (response) {
+            vm.authenticated = true;
+            $window.sessionStorage.token = response.data.access_token;
+            vm.todos = Todo.list();
+        });
+    };
+
+    vm.save = function() {
+        vm.newTodo.$save({}, function() {
+            vm.todos.push(angular.copy(vm.newTodo));
+            vm.newTodo = new Todo();
+        });
+    };
+
+    vm.delete = function(todo) {
+        todo.$delete({}, function() {
+            var idx = vm.todos.indexOf(todo);
+            vm.todos.splice(idx, 1);
+        });
+    };
+
+    vm.update = function(todo) {
+        todo.$update();
+    };
+}
+----
+
+And that's all!
+
+icon:hand-o-right[] You can run again the application, with your browser's developer console opened, and you will see
+how the auhentication is performed, and once logged in, you can also see how the token is sent in the header.
+
+If you liked this workshop https://twitter.com/home?status=Check%20out%20%40alvaro_sanchez's%20cool%20workshop%20about%20%40grailsframework%20%40angularjs%20%26%20%40springsecurity%3A%20http%3A//alvarosanchez.github.io/grails-angularjs-springsecurity-workshop%20%23grailsfw%20%40groovylang[icon:twitter[] share it on Twitter!]
