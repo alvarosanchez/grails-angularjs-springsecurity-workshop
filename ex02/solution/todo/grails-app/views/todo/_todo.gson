@@ -1,0 +1,12 @@
+import todo.Todo
+
+model {
+	Todo todo
+}
+
+json {
+	hal.links(todo)
+	id todo.id
+	description todo.description
+	done todo.done
+}

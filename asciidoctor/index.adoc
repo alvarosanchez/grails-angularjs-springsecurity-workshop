@@ -373,6 +373,17 @@ $ grails create-app --profile angular -features hibernate,json-views todo
 | Application created at /tmp/todo
 ----
 
+icon:hand-o-right[] Now, copy the following elements from the previous project to the created one:
+
+* `grails-app/controllers/todo/TodoController.groovy`.
+* `grails-app/controllers/todo/UrlMappings.groovy`.
+* `grails-app/domain/todo/Todo.groovy`.
+* `grails-app/init/BootStrap.groovy`.
+* `grails-app/views/todo/*`.
+
+icon:hand-o-right[] Then, run the application to ensure that the `/todo` and `/pendingTodos` are working as expected.
+
+
 === Writing the AngularJS code (30 minutes)
 
 == Adding security with Spring Security REST (45 minutes)

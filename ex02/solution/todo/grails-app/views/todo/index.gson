@@ -1,0 +1,8 @@
+import todo.Todo
+
+model {
+	Iterable<Todo> todoList
+}
+
+json tmpl.todo(todoList ?: [])
+
