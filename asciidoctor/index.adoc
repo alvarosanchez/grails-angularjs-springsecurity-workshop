@@ -1,3 +1,384 @@
 = Creating applications with Grails, Angular JS and Spring Security
+Álvaro Sánchez-Mariscal <https://github.com/alvarosanchez[icon:github[] @alvarosanchez]>
 
-Álvaro Sánchez-Mariscal <https://github.com/alvarosanchez[icon:github[] @alvarosanchez] https://twitter.com/alvaro_sanchez[icon:twitter[] @alvaro_sanchez]>
+++++
+<a href="https://github.com/alvarosanchez/grails-angularjs-springsecurity-workshop"><img style="position: fixed; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
+++++
+
+== Getting started (10 minutes)
+
+To complete this workshop, you should have installed locally:
+
+* JDK 7 or 8.
+* Git.
+* Gradle 2.9+.
+* Grails 3.1.6.
+
+Also, although not mandatory, it's highly recommended to use https://www.jetbrains.com/idea/[IntelliJ IDEA], arguably
+the best IDE for Groovy and Grails development. You can just use the Community Edition if you want to.
+
+To get started, clone the workshop repo locally:
+
+----
+git clone https://github.com/alvarosanchez/grails-angularjs-springsecurity-workshop.git
+----
+
+The workshop is organised through a set of exercises that are described below, each of one on its own directory. Each
+exercise is self-explanatory. To highlight actions you actually need to perform, an icon is used: icon:hand-o-right[]
+
+:numbered:
+
+== Creating a Grails REST API (50 minutes)
+
+The first exercise in this workshop is to create a Grails application that will contain a REST API. The application
+will be a todo app.
+
+=== Understanding profiles (5 minutes)
+
+Historically, the `create-app` and `create-plugin` Grails commands have always created Grails applications and plugins
+with the same structure and files. However, Grails 3 introduced profiles, that bring more options at creation time to
+start with different types of applications and plugins.
+
+A profile defines:
+
+* The project's `build.gradle`: dependencies, plugins installed, etc.
+* Additional commands for the CLI, such as `create-domain-class` or `run-app`.
+* Skeleton: the initial set of files and directories of the application that will be created.
+* Features: configuration subsets to bring specific behaviour. For instance, the `json-views` feature brings some
+  dependencies to the `build.gradle` file, defines some commands, etc.
+
+icon:hand-o-right[] To find out what profiles are available, use the `list-profiles` command:
+
+----
+$ grails list-profiles
+| Available Profiles
+--------------------
+* angular - A profile for creating applications using AngularJS
+* rest-api - Profile for REST API applications
+* base - The base profile extended by other profiles
+* plugin - Profile for plugins designed to work across all profiles
+* web - Profile for Web applications
+* web-plugin - Profile for Plugins designed for Web applications
+----
+
+icon:hand-o-right[] For more information on a particular profile use the `profile-info` command:
+
+----
+$ grails profile-info rest-api
+Profile: rest-api
+--------------------
+Profile for REST API applications
+
+Provided Commands:
+--------------------
+* create-controller - Creates a controller
+* create-domain-resource - Creates a domain class that represents a resource
+* create-functional-test - Creates an functional test
+* create-integration-test - Creates an integration test
+* create-interceptor - Creates an interceptor
+* create-restful-controller - Creates a REST controller
+...
+----
+
+WARNING: `list-profiles` and `profile-info` will only work outside of a Grails application folder.
+
+=== Creating a project using the `rest-api` profile (15 minutes)
+
+icon:hand-o-right[] Although we will use the `angular` profile in future exercises, for the purpose of this one we will start with the
+`rest-api` profile. We will also pick the `hibernate` and `json-views` features:
+
+----
+$ grails create-app -profile rest-api -features hibernate,json-views todo
+| Application created at /tmp/todo
+----
+
+The next step is to create a domain class. In this case, not only we want a domain class, but also a REST controller
+on top of it.
+
+icon:hand-o-right[] There are several ways to create a RESTful controller. The easiest way it's to create a domain resource:
+
+----
+$ grails create-domain-resource todo
+| Created grails-app/domain/todo/Todo.groovy
+| Created src/test/groovy/todo/TodoSpec.groovy
+----
+
+This will create a domain class like this:
+
+[source,groovy]
+.Todo.groovy
+----
+package todo
+
+import grails.rest.*
+
+@Resource(readOnly = false, formats = ['json', 'xml'])
+class Todo {
+
+}
+----
+
+Notice the `@Resource` annotation: it's an AST transformation that will generate at compile time a REST controller for
+the domain it's annotated to. The generated controller will have the usual CRUD methods:
+
+* Create: `save()`.
+* Read: `index()` for all elements, and `show()` for a single one.
+* Update: `update()`.
+* Delete: `delete()`.
+
+In addition to that, if we define the annotation parameter `uri`, those operations will also be mapped to the
+corresponding HTTP methods: `POST` for `create()`, `DELETE` for `delete()`, etc.
+
+icon:hand-o-right[] Add the following fields to the domain class:
+
+[source,groovy]
+----
+String description
+boolean done
+----
+
+This is how the domain class should finally look like:
+
+[source,groovy]
+----
+package todo
+
+import grails.rest.*
+
+@Resource(uri = '/todos', readOnly = false, formats = ['json', 'xml'])
+class Todo {
+    String description
+    boolean done
+}
+----
+
+icon:hand-o-right[] Before continuing, add some initial data in `grails-app/init/BootStrap.groovy`:
+
+[source,groovy]
+----
+import todo.Todo
+
+class BootStrap {
+
+    def init = { servletContext ->
+        5.times { new Todo(description: "Todo ${it+1}").save() }
+    }
+    def destroy = {
+    }
+}
+----
+
+icon:hand-o-right[] Next, run the application with `grails run-app`. Once it's running, you should be able to test some endpoints using `curl`:
+
+* List existing todos: `curl -i 0:8080/todos`
+* Create a new todo: `curl -i -H "Content-Type: application/json" --data '{"description":"created from curl"}' 0:8080/todos`
+* Modify the created todo: `curl -i -H "Content-Type: application/json" --data '{"description":"modified from curl"}' -X PUT 0:8080/todos/6`
+* Display the modified todo: `curl -i 0:8080/todos/6`
+* And delete it: `curl -i -X DELETE 0:8080/todos/6`
+
+=== Writing a custom RESTful controller (15 minutes)
+
+While a domain resource may be enough for the most simplest cases, usually you will need additional actions in your
+controller. So let's get rid of the `@Resource` annotation and write our own controller.
+
+icon:hand-o-right[] Create a blank RESTful controller by running:
+
+----
+$ grails create-restful-controller todo.Todo
+| Created grails-app/controllers/todo/TodoController.groovy
+----
+
+This will create a controller that `extends RestfulController`. `grails.rest.RestfulController` is the base class that
+provides the CRUD methods like `index()`, `save()`, etc.
+
+Note that those methods may be overriden if you need to. `RestfulController` also provides some other `protected` methods
+that can as well be overriden to further customise its behaviour. Check
+http://docs.grails.org/3.1.6/api/grails/rest/Resource.html[its documentation] for more information.
+
+icon:hand-o-right[] Now, define a mapping for this controller in `grails-app/controllers/UrlMappings.groovy`:
+
+[source,groovy]
+----
+"/todos"(resources:"todo")
+----
+
+icon:hand-o-right[] Run the application now, and test the CRUD operations. You should see the exact same behavior as with `@Resource`.
+
+icon:hand-o-right[] Now, let's add a custom action that lists only the uncompleted todos:
+
+[source,groovy]
+----
+def pending() {
+    respond Todo.findAllByDone(false), view: 'index'
+}
+----
+
+icon:hand-o-right[] And also a URL mapping for such action:
+
+[source,groovy]
+----
+"/pendingTodos"(controller: 'todo', action: 'pending')
+----
+
+icon:hand-o-right[] If you run the application now, you should be able to test this new endpoint:
+
+----
+$ curl -i 0:8080/pendingTodos
+----
+
+icon:hand-o-right[] You can flag one todo as completed:
+
+----
+curl -i -H "Content-Type: application/json" --data '{"done": true}' -X PUT 0:8080/todos/3
+----
+
+icon:hand-o-right[] Then, verify that the `/pendingTodos` endpoint works as expected.
+
+=== Customising the JSON response with JSON views (15 minutes)
+
+The https://github.com/grails/grails-views[Grails Views] project provides additional view technologies to the Grails
+framework, including JSON and Markup views. It was introduced in Grails 3.0.
+
+JSON views are written in Groovy, end with the file extension `gson` and reside in the `grails-app/views` directory.
+They provide a DSL for producing output in the JSON format. A hello world example can be seen below:
+
+[source,groovy]
+.`grails-app/views/hello.gson`
+----
+json.message {
+    hello "world"
+}
+----
+
+The above JSON view results in the output:
+
+[source,javascript]
+----
+{"message":{ "hello":"world"}}
+----
+
+The `json` variable is an instance of
+http://docs.groovy-lang.org/latest/html/api/groovy/json/StreamingJsonBuilder.html[StreamingJsonBuilder]. See the
+http://docs.groovy-lang.org/latest/html/documentation/core-domain-specific-languages.html#_streamingjsonbuilder[documentation]
+in the Groovy user guide for more information on `StreamingJsonBuilder`.
+
+icon:hand-o-right[] To get started with the JSON views for the `Todo` domain class, run the `generate-views` command:
+
+----
+$ grails generate-views todo.Todo
+| Rendered template index.gson to destination grails-app/views/todo/index.gson
+| Rendered template show.gson to destination grails-app/views/todo/show.gson
+| Rendered template _domain.gson to destination grails-app/views/todo/_todo.gson
+| Scaffolding completed for grails-app/domain/todo/Todo.groovy
+----
+
+icon:hand-o-right[] Let's change `grails-app/views/todo/_todo.gson` to put some https://tools.ietf.org/html/draft-kelly-json-hal-08[HAL] information in the response:
+
+[source,groovy]
+----
+import todo.Todo
+
+model {
+	Todo todo
+}
+
+json {
+	_links {
+		self {
+			href "${g.link(resource: 'todo', absolute: true)}/${todo.id}"
+		}
+	}
+  id todo.id
+	description todo.description
+	done todo.done
+}
+----
+
+icon:hand-o-right[] If we run the application and hit the `/todos` endpoint, we can see the new information:
+
+[source,javascript]
+----
+[{
+	"id": 1,
+	"description": "Todo 1",
+	"completed": false,
+	"_links": {
+		"self": {
+			"href": "http://localhost:8080/todos/1"
+		}
+	}
+}, {
+  ...
+}]
+----
+
+icon:hand-o-right[] Fortunately, Grails' JSON views comes with support for HAL automatically:
+
+[source,groovy]
+----
+import todo.Todo
+
+model {
+	Todo todo
+}
+
+json {
+	hal.links(todo)
+	id todo.id
+	description todo.description
+	done todo.done
+}
+----
+
+icon:hand-o-right[] Hit the `/todos` endpoint again to see the difference.
+
+== Creating an AngularJS front-end (40 minutes)
+
+=== The `angular` profile (10 minutes).
+
+The `angular` profile was introduced in Grails 3.1. It provides a more focused set of dependencies and commands to work
+with Angular JS. The `angular` profile inherits from the `rest-api` profile and therefore has all of the commands and
+properties that the REST profile has.
+
+The `angular` profile creates applications that provides the following features:
+
+* Default set of commands for creating Angular artefacts.
+* Gradle plugin to manage client side dependencies.
+* Gradle plugin to execute client side unit tests.
+* Asset Pipeline plugins to ease development.
+
+By default the Angular profile includes GSP support in order to render the index page. This is necessary because the
+profile is designed around http://www.asset-pipeline.com/[`asset-pipeline`].
+
+The new commands that the profile brings are:
+
+* `create-ng-component`.
+* `create-ng-controller`.
+* `create-ng-directive`.
+* `create-ng-domain`.
+* `create-ng-module`.
+* `create-ng-service`.
+
+All the files generated are placed by default under `grails-app/assets/javascripts`. For example, the command
+`grails create-ng-controller foo` will create the file
+`grails-app/assets/javascripts/${default package name}/controllers/fooController.js`.
+
+For every artefact created, the profile commands will also create a skeleton unit test file under `src/test/javascripts`
+
+icon:hand-o-right[] To get started with the Angular profile create an application with by specifying angular as the name
+of the profile:
+
+----
+$ grails create-app --profile angular -features hibernate,json-views todo
+| Application created at /tmp/todo
+----
+
+=== Writing the AngularJS code (30 minutes)
+
+== Adding security with Spring Security REST (45 minutes)
+
+=== Introduction to Spring Security (15 minutes)
+
+=== Securing the REST API (15 minutes)
+
+=== Integrating AngularJS with Spring Security REST (15 minutes)

@@ -5,6 +5,7 @@ buildscript {
 
   dependencies {
     classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
+    classpath 'org.asciidoctor:asciidoctorj-screenshot:0.1.0'
   }
 }
 
@@ -19,5 +20,7 @@ asciidoctor {
 
   attributes 'toc'                : 'left',
              'icons'              : 'font',
+             'experimental'       : 'true',
+             'screenshot-dir-name': '../screens',
              'source-highlighter' : 'coderay'
 }
