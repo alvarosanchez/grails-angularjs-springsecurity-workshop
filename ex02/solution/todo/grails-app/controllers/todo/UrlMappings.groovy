@@ -12,7 +12,7 @@ class UrlMappings {
         "/todos"(resources:"todo")
         "/pendingTodos"(controller: 'todo', action: 'pending')
 
-        "/"(controller: 'application', action:'index')
+        "/"(view: 'index')
         "500"(view: '/error')
         "404"(view: '/notFound')
     }

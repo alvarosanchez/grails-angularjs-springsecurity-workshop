@@ -376,15 +376,43 @@ $ grails create-app --profile angular -features hibernate,json-views todo
 icon:hand-o-right[] Now, copy the following elements from the previous project to the created one:
 
 * `grails-app/controllers/todo/TodoController.groovy`.
-* `grails-app/controllers/todo/UrlMappings.groovy`.
 * `grails-app/domain/todo/Todo.groovy`.
 * `grails-app/init/BootStrap.groovy`.
 * `grails-app/views/todo/*`.
 
-icon:hand-o-right[] Then, run the application to ensure that the `/todo` and `/pendingTodos` are working as expected.
+icon:hand-o-right[] After that, re-apply the URL mappings that we previously had:
 
+[source,groovy]
+----
+"/todos"(resources:"todo")
+"/pendingTodos"(controller: 'todo', action: 'pending')
+----
+
+icon:hand-o-right[] Then, run the application to ensure that the `/todo` and `/pendingTodos` are working as expected.
+Also, if you load the root URL, you should see something like:
+
+image::localhost.png[]
 
 === Writing the AngularJS code (30 minutes)
+
+The entry point for the application, as specified by the `/` URL mapping, is `grails-app/views/index.gsp`. That file
+contains by default information about the application. Simply ignore it.
+
+icon:hand-o-right[] Find a `<section>` tag, and leave its body empty:
+
+[source,html]
+----
+<div id="content" role="main">
+    <section class="row colset-2-its">
+
+        <!-- Our code will be here -->
+
+    </section>
+</div>
+----
+
+icon:hand-o-right[] Also, remove everything under `grails-app/assets/javascripts/*`, as we want to write our own code.
+
 
 == Adding security with Spring Security REST (45 minutes)
 

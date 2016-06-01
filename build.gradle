@@ -14,6 +14,11 @@ apply plugin: 'org.asciidoctor.convert'
 asciidoctor {
   sourceDir = new File("$rootDir/asciidoctor")
 
+  resources {
+    from sourceDir
+    into "./images"
+  }
+
   sources {
     include 'index.adoc'
   }
@@ -22,5 +27,6 @@ asciidoctor {
              'icons'              : 'font',
              'experimental'       : 'true',
              'screenshot-dir-name': '../screens',
+             'imagesdir'          : 'images',
              'source-highlighter' : 'coderay'
 }
