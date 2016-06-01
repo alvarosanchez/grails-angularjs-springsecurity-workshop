@@ -1,0 +1,11 @@
+= grails-angularjs-springsecurity-workshop
+
+= Creating applications with Grails, Angular JS and Spring Security
+
+Workshop to create an application using:
+
+* A REST API backend using Grails.
+** API secured with Spring Security REST.
+* An front-end using Angular JS.
+
+http://alvarosanchez.github.io/grails-angularjs-springsecurity-workshop/[See it online]
