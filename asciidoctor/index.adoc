@@ -301,7 +301,7 @@ icon:hand-o-right[] If we run the application and hit the `/todos` endpoint, we 
 [{
 	"id": 1,
 	"description": "Todo 1",
-	"completed": false,
+	"done": false,
 	"_links": {
 		"self": {
 			"href": "http://localhost:8080/todos/1"
@@ -395,6 +395,9 @@ image::localhost.png[]
 
 === Writing the AngularJS code (30 minutes)
 
+WARNING: Ultimately it's not a goal of this workshop that you become a master in Angular JS development. A basic Angular JS
+knowledge is required to understand the steps performed through the exercise.
+
 The entry point for the application, as specified by the `/` URL mapping, is `grails-app/views/index.gsp`. That file
 contains by default information about the application. Simply ignore it.
 
@@ -413,6 +416,155 @@ icon:hand-o-right[] Find a `<section>` tag, and leave its body empty:
 
 icon:hand-o-right[] Also, remove everything under `grails-app/assets/javascripts/*`, as we want to write our own code.
 
+icon:hand-o-right[] Let's create a domain by running the following command:
+
+----
+$ grails create-ng-domain todo
+| Rendered template NgModuleSpec.js to destination src/test/javascripts/todo/todo/todo.todoSpec.js
+| Rendered template NgModule.js to destination grails-app/assets/javascripts/todo/todo/todo.todo.js
+| Rendered template NgDomainSpec.js to destination src/test/javascripts/todo/domain/TodoSpec.js
+| Rendered template NgDomain.js to destination grails-app/assets/javascripts/todo/domain/Todo.js
+----
+
+The `todo/domain/Todo.js` file will export a module that will allow us to write code such as `Todo.list()`,
+`todo.save()`, etc. A-la-Grails! On such methods, Angular JS will transparently excute an HTTP request to the backend,
+by taking into account the REST mappings. For example, `Todo.list()` will make an HTTP GET request, `todo.delete()`
+will do a DELETE, etc.
+
+icon:hand-o-right[] There's just a change we need to do on it: as our backend is at `/todos` and not `/todo`, find the
+string `"todo/:id"` and replace it by `"todos/:id"`.
+
+icon:hand-o-right[] The root module, generated at `grails-app/assets/javascripts/todo/todo.todo.js`, is named a bit
+repetitive, so rename it to `app.js`, and leave it with the following content:
+
+[source,javascript]
+----
+//= wrapped
+//= require /angular/angular
+//= require /angular/angular-resource
+//= require_self
+//= require_tree services
+//= require_tree controllers
+//= require_tree directives
+//= require_tree domain
+//= require_tree templates
+
+angular.module("todo", ['ngResource']);
+----
+
+That will be our main file to be loaded in `index.gsp`. As you can see, it contains asset-pipeline instructions to
+include other dependencies such as Angular itself, as well as our application code.
+
+The dependencies like `angular` and `angular-resource` are fetched by the `bower-installer` Gradle plugin. You will
+find a `bower { ... }` block in `build.gradle`. Those dependencies are gently handled by asset-pipeline, which takes
+action during the build process, to bundle and minimise them into our `app.js` file. In development mode, however,
+minimisation and bundling is not performed.
+
+icon:hand-o-right[] Now, let's create a controller by running the following command:
+
+----
+$ grails create-ng-controller todo
+| Warning Destination file src/test/javascripts/todo/todo/todo.todoSpec.js already exists, skipping...
+| Rendered template NgModule.js to destination grails-app/assets/javascripts/todo/todo/todo.todo.js
+| Rendered template NgControllerSpec.js to destination src/test/javascripts/todo/controllers/todoControllerSpec.js
+| Rendered template NgController.js to destination grails-app/assets/javascripts/todo/controllers/todoController.js
+----
+
+icon:hand-o-right[] The controller code should look like this:
+
+[source,javascript]
+----
+//= wrapped
+
+angular
+    .module("todo")
+    .controller("TodoController", TodoController);
+
+function TodoController(Todo) {
+    var vm = this;
+
+    vm.todos = Todo.list();
+
+    vm.newTodo = new Todo();
+
+    vm.save = function() {
+        vm.newTodo.$save({}, function() {
+            vm.todos.push(angular.copy(vm.newTodo));
+            vm.newTodo = new Todo();
+        });
+    };
+
+    vm.delete = function(todo) {
+        todo.$delete({}, function() {
+            var idx = vm.todos.indexOf(todo);
+            vm.todos.splice(idx, 1);
+        });
+    };
+
+    vm.update = function(todo) {
+        todo.$update();
+    };
+}
+----
+
+Now, let's write the view code.
+
+icon:hand-o-right[] First of all, make sure our entry point `app.js` is loaded in `index.gsp`. Find
+the `<asset:javascript>` tag right before the closing `</body>`, and change it to point to our file:
+
+[source,html]
+----
+<asset:javascript src="/todo/app.js" />
+----
+
+icon:hand-o-right[] Then, find the `<body>` tag and change it so it refers to our controller instead of the
+default one that we deleted. It should look like:
+
+[source,html]
+----
+<body ng-app="todo" ng-controller="TodoController as vm">
+----
+
+icon:hand-o-right[] Finally, inside the `<section>` tag, where we left a placeholder comment, write the following code:
+
+[source,html]
+----
+<div class="form">
+    <input type="text" ng-model="vm.newTodo.description" />
+    <button type="button" ng-click="vm.save()">add</button>
+</div>
+
+<div ng-include="'/todo/list.html'"></div>
+----
+
+icon:hand-o-right[] Now, create the following file:
+
+[source,html]
+.`grails-app/assets/javascripts/todo/templates/list.tpl.html`
+----
+<table>
+    <tbody>
+        <tr ng-repeat="t in vm.todos">
+            <td>
+                {{t.description}}
+            </td>
+            <td>
+                <input type="checkbox" ng-model="t.done" ng-click="vm.update(t)" />
+            </td>
+            <td>
+                <button type="button" ng-click="vm.delete(t)">Delete</button>
+            </td>
+        </tr>
+    </tbody>
+</table>
+----
+
+And you are done! Go back to your browser and load http://localhost:8080[]:
+
+image::todo.png[]
+
+icon:hand-o-right[] With your browser's developer console open, try to create new todos, mark them as complete or
+delete them, and you will see how Angular JS issues HTTP request to the backend we created in the first exercise.
 
 == Adding security with Spring Security REST (45 minutes)
 

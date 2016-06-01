@@ -21,7 +21,7 @@
     </script>
 </head>
 
-<body ng-app="todo" ng-controller="IndexController as vm">
+<body ng-app="todo" ng-controller="TodoController as vm">
 
     <div class="navbar navbar-default navbar-static-top" role="navigation">
         <div class="container">
@@ -82,7 +82,12 @@
     <div id="content" role="main">
         <section class="row colset-2-its">
             <!-- Our code will be here -->
+            <div class="form">
+                <input type="text" ng-model="vm.newTodo.description" />
+                <button type="button" ng-click="vm.save()">add</button>
+            </div>
 
+            <div ng-include="'/todo/list.html'"></div>
         </section>
     </div>
 
@@ -92,6 +97,6 @@
         <g:message code="spinner.alt" default="Loading&hellip;"/>
     </div>
 
-    <asset:javascript src="/todo/todo.js" />
+    <asset:javascript src="/todo/app.js" />
 </body>
 </html>
