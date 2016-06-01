@@ -1,0 +1,900 @@
+= Creating applications with Grails, Angular JS and Spring Security
+Álvaro Sánchez-Mariscal <https://github.com/alvarosanchez[icon:github[] @alvarosanchez]>
+
+++++
+<a href="https://github.com/alvarosanchez/grails-angularjs-springsecurity-workshop"><img style="position: fixed; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
+++++
+
+== Getting started
+
+To complete this workshop, you should have installed locally:
+
+* JDK 7 or 8.
+* Git.
+* Gradle 2.9+.
+* Grails 3.1.6.
+
+Also, although not mandatory, it's highly recommended to use https://www.jetbrains.com/idea/[IntelliJ IDEA], arguably
+the best IDE for Groovy and Grails development. You can just use the Community Edition if you want to.
+
+To get started, clone the workshop repo locally:
+
+----
+git clone https://github.com/alvarosanchez/grails-angularjs-springsecurity-workshop.git
+----
+
+The workshop is organised through a set of exercises that are described below, each of one on its own directory. Each
+exercise is self-explanatory. To highlight actions you actually need to perform, an icon is used: icon:hand-o-right[]
+
+:numbered:
+
+== Creating a Grails REST API (50 minutes)
+
+TIP: Change to the `ex01` folder to start working on this exercise. The final solution is provided to you in the
+`ex01/solution` folder.
+
+The first exercise in this workshop is to create a Grails application that will contain a REST API. The application
+will be a todo app.
+
+=== Understanding profiles (5 minutes)
+
+Historically, the `create-app` and `create-plugin` Grails commands have always created Grails applications and plugins
+with the same structure and files. However, Grails 3 introduced profiles, that bring more options at creation time to
+start with different types of applications and plugins.
+
+A profile defines:
+
+* The project's `build.gradle`: dependencies, plugins installed, etc.
+* Additional commands for the CLI, such as `create-domain-class` or `run-app`.
+* Skeleton: the initial set of files and directories of the application that will be created.
+* Features: configuration subsets to bring specific behaviour. For instance, the `json-views` feature brings some
+  dependencies to the `build.gradle` file, defines some commands, etc.
+
+icon:hand-o-right[] To find out what profiles are available, use the `list-profiles` command:
+
+----
+$ grails list-profiles
+| Available Profiles
+--------------------
+* angular - A profile for creating applications using AngularJS
+* rest-api - Profile for REST API applications
+* base - The base profile extended by other profiles
+* plugin - Profile for plugins designed to work across all profiles
+* web - Profile for Web applications
+* web-plugin - Profile for Plugins designed for Web applications
+----
+
+icon:hand-o-right[] For more information on a particular profile use the `profile-info` command:
+
+----
+$ grails profile-info rest-api
+Profile: rest-api
+--------------------
+Profile for REST API applications
+
+Provided Commands:
+--------------------
+* create-controller - Creates a controller
+* create-domain-resource - Creates a domain class that represents a resource
+* create-functional-test - Creates an functional test
+* create-integration-test - Creates an integration test
+* create-interceptor - Creates an interceptor
+* create-restful-controller - Creates a REST controller
+...
+----
+
+WARNING: `list-profiles` and `profile-info` will only work outside of a Grails application folder.
+
+=== Creating a project using the `rest-api` profile (15 minutes)
+
+icon:hand-o-right[] Although we will use the `angular` profile in future exercises, for the purpose of this one we will start with the
+`rest-api` profile. We will also pick the `hibernate` and `json-views` features:
+
+----
+$ grails create-app -profile rest-api -features hibernate,json-views todo
+| Application created at /tmp/todo
+----
+
+The next step is to create a domain class. In this case, not only we want a domain class, but also a REST controller
+on top of it.
+
+icon:hand-o-right[] There are several ways to create a RESTful controller. The easiest way it's to create a domain resource:
+
+----
+$ grails create-domain-resource todo
+| Created grails-app/domain/todo/Todo.groovy
+| Created src/test/groovy/todo/TodoSpec.groovy
+----
+
+This will create a domain class like this:
+
+[source,groovy]
+.Todo.groovy
+----
+package todo
+
+import grails.rest.*
+
+@Resource(readOnly = false, formats = ['json', 'xml'])
+class Todo {
+
+}
+----
+
+Notice the `@Resource` annotation: it's an AST transformation that will generate at compile time a REST controller for
+the domain it's annotated to. The generated controller will have the usual CRUD methods:
+
+* Create: `save()`.
+* Read: `index()` for all elements, and `show()` for a single one.
+* Update: `update()`.
+* Delete: `delete()`.
+
+In addition to that, if we define the annotation parameter `uri`, those operations will also be mapped to the
+corresponding HTTP methods: `POST` for `create()`, `DELETE` for `delete()`, etc.
+
+icon:hand-o-right[] Add the following fields to the domain class:
+
+[source,groovy]
+----
+String description
+boolean done
+----
+
+This is how the domain class should finally look like:
+
+[source,groovy]
+----
+package todo
+
+import grails.rest.*
+
+@Resource(uri = '/todos', readOnly = false, formats = ['json', 'xml'])
+class Todo {
+    String description
+    boolean done
+}
+----
+
+icon:hand-o-right[] Before continuing, add some initial data in `grails-app/init/BootStrap.groovy`:
+
+[source,groovy]
+----
+import todo.Todo
+
+class BootStrap {
+
+    def init = { servletContext ->
+        5.times { new Todo(description: "Todo ${it+1}").save() }
+    }
+    def destroy = {
+    }
+}
+----
+
+icon:hand-o-right[] Next, run the application with `grails run-app`. Once it's running, you should be able to test some endpoints using `curl`:
+
+* List existing todos: `curl -i 0:8080/todos`
+* Create a new todo: `curl -i -H "Content-Type: application/json" --data '{"description":"created from curl"}' 0:8080/todos`
+* Modify the created todo: `curl -i -H "Content-Type: application/json" --data '{"description":"modified from curl"}' -X PUT 0:8080/todos/6`
+* Display the modified todo: `curl -i 0:8080/todos/6`
+* And delete it: `curl -i -X DELETE 0:8080/todos/6`
+
+=== Writing a custom RESTful controller (15 minutes)
+
+While a domain resource may be enough for the most simplest cases, usually you will need additional actions in your
+controller. So let's get rid of the `@Resource` annotation and write our own controller.
+
+icon:hand-o-right[] Create a blank RESTful controller by running:
+
+----
+$ grails create-restful-controller todo.Todo
+| Created grails-app/controllers/todo/TodoController.groovy
+----
+
+This will create a controller that `extends RestfulController`. `grails.rest.RestfulController` is the base class that
+provides the CRUD methods like `index()`, `save()`, etc.
+
+Note that those methods may be overriden if you need to. `RestfulController` also provides some other `protected` methods
+that can as well be overriden to further customise its behaviour. Check
+http://docs.grails.org/3.1.6/api/grails/rest/Resource.html[its documentation] for more information.
+
+icon:hand-o-right[] Now, define a mapping for this controller in `grails-app/controllers/UrlMappings.groovy`:
+
+[source,groovy]
+----
+"/todos"(resources:"todo")
+----
+
+icon:hand-o-right[] Run the application now, and test the CRUD operations. You should see the exact same behavior as with `@Resource`.
+
+icon:hand-o-right[] Now, let's add a custom action that lists only the uncompleted todos:
+
+[source,groovy]
+----
+def pending() {
+    respond Todo.findAllByDone(false), view: 'index'
+}
+----
+
+icon:hand-o-right[] And also a URL mapping for such action:
+
+[source,groovy]
+----
+"/pendingTodos"(controller: 'todo', action: 'pending')
+----
+
+icon:hand-o-right[] If you run the application now, you should be able to test this new endpoint:
+
+----
+$ curl -i 0:8080/pendingTodos
+----
+
+icon:hand-o-right[] You can flag one todo as completed:
+
+----
+curl -i -H "Content-Type: application/json" --data '{"done": true}' -X PUT 0:8080/todos/3
+----
+
+icon:hand-o-right[] Then, verify that the `/pendingTodos` endpoint works as expected.
+
+=== Customising the JSON response with JSON views (15 minutes)
+
+The https://github.com/grails/grails-views[Grails Views] project provides additional view technologies to the Grails
+framework, including JSON and Markup views. It was introduced in Grails 3.0.
+
+JSON views are written in Groovy, end with the file extension `gson` and reside in the `grails-app/views` directory.
+They provide a DSL for producing output in the JSON format. A hello world example can be seen below:
+
+[source,groovy]
+.`grails-app/views/hello.gson`
+----
+json.message {
+    hello "world"
+}
+----
+
+The above JSON view results in the output:
+
+[source,javascript]
+----
+{"message":{ "hello":"world"}}
+----
+
+The `json` variable is an instance of
+http://docs.groovy-lang.org/latest/html/api/groovy/json/StreamingJsonBuilder.html[StreamingJsonBuilder]. See the
+http://docs.groovy-lang.org/latest/html/documentation/core-domain-specific-languages.html#_streamingjsonbuilder[documentation]
+in the Groovy user guide for more information on `StreamingJsonBuilder`.
+
+icon:hand-o-right[] To get started with the JSON views for the `Todo` domain class, run the `generate-views` command:
+
+----
+$ grails generate-views todo.Todo
+| Rendered template index.gson to destination grails-app/views/todo/index.gson
+| Rendered template show.gson to destination grails-app/views/todo/show.gson
+| Rendered template _domain.gson to destination grails-app/views/todo/_todo.gson
+| Scaffolding completed for grails-app/domain/todo/Todo.groovy
+----
+
+icon:hand-o-right[] Let's change `grails-app/views/todo/_todo.gson` to put some https://tools.ietf.org/html/draft-kelly-json-hal-08[HAL] information in the response:
+
+[source,groovy]
+----
+import todo.Todo
+
+model {
+	Todo todo
+}
+
+json {
+	_links {
+		self {
+			href "${g.link(resource: 'todo', absolute: true)}/${todo.id}"
+		}
+	}
+  id todo.id
+	description todo.description
+	done todo.done
+}
+----
+
+icon:hand-o-right[] If we run the application and hit the `/todos` endpoint, we can see the new information:
+
+[source,javascript]
+----
+[{
+	"id": 1,
+	"description": "Todo 1",
+	"done": false,
+	"_links": {
+		"self": {
+			"href": "http://localhost:8080/todos/1"
+		}
+	}
+}, {
+  ...
+}]
+----
+
+icon:hand-o-right[] Fortunately, Grails' JSON views comes with support for HAL automatically:
+
+[source,groovy]
+----
+import todo.Todo
+
+model {
+	Todo todo
+}
+
+json {
+	hal.links(todo)
+	id todo.id
+	description todo.description
+	done todo.done
+}
+----
+
+icon:hand-o-right[] Hit the `/todos` endpoint again to see the difference.
+
+== Creating an AngularJS front-end (50 minutes)
+
+TIP: Change to the `ex02` folder to start working on this exercise. The final solution is provided to you in the
+`ex02/solution` folder.
+
+=== The `angular` profile (10 minutes).
+
+The `angular` profile was introduced in Grails 3.1. It provides a more focused set of dependencies and commands to work
+with Angular JS. The `angular` profile inherits from the `rest-api` profile and therefore has all of the commands and
+properties that the REST profile has.
+
+The `angular` profile creates applications that provides the following features:
+
+* Default set of commands for creating Angular artefacts.
+* Gradle plugin to manage client side dependencies.
+* Gradle plugin to execute client side unit tests.
+* Asset Pipeline plugins to ease development.
+
+By default the Angular profile includes GSP support in order to render the index page. This is necessary because the
+profile is designed around http://www.asset-pipeline.com/[`asset-pipeline`].
+
+The new commands that the profile brings are:
+
+* `create-ng-component`.
+* `create-ng-controller`.
+* `create-ng-directive`.
+* `create-ng-domain`.
+* `create-ng-module`.
+* `create-ng-service`.
+
+All the files generated are placed by default under `grails-app/assets/javascripts`. For example, the command
+`grails create-ng-controller foo` will create the file
+`grails-app/assets/javascripts/${default package name}/controllers/fooController.js`.
+
+For every artefact created, the profile commands will also create a skeleton unit test file under `src/test/javascripts`
+
+icon:hand-o-right[] To get started with the Angular profile create an application with by specifying angular as the name
+of the profile:
+
+----
+$ grails create-app --profile angular -features hibernate,json-views todo
+| Application created at /tmp/todo
+----
+
+icon:hand-o-right[] Now, copy the following elements from the previous project to the created one:
+
+* `grails-app/controllers/todo/TodoController.groovy`.
+* `grails-app/domain/todo/Todo.groovy`.
+* `grails-app/init/BootStrap.groovy`.
+* `grails-app/views/todo/*`.
+
+icon:hand-o-right[] After that, re-apply the URL mappings that we previously had:
+
+[source,groovy]
+----
+"/todos"(resources:"todo")
+"/pendingTodos"(controller: 'todo', action: 'pending')
+----
+
+icon:hand-o-right[] Then, run the application to ensure that the `/todo` and `/pendingTodos` are working as expected.
+Also, if you load the root URL, you should see something like:
+
+image::localhost.png[]
+
+=== Writing the AngularJS code (40 minutes)
+
+WARNING: Ultimately it's not a goal of this workshop that you become a master in Angular JS development. A basic Angular JS
+knowledge is required to understand the steps performed through the exercise.
+
+The entry point for the application, as specified by the `/` URL mapping, is `grails-app/views/index.gsp`. That file
+contains by default information about the application. Simply ignore it.
+
+icon:hand-o-right[] Find a `<section>` tag, and leave its body empty:
+
+[source,html]
+----
+<div id="content" role="main">
+    <section class="row colset-2-its">
+
+        <!-- Our code will be here -->
+
+    </section>
+</div>
+----
+
+icon:hand-o-right[] Also, remove everything under `grails-app/assets/javascripts/*`, as we want to write our own code.
+
+icon:hand-o-right[] Let's create a domain by running the following command:
+
+----
+$ grails create-ng-domain todo
+| Rendered template NgModuleSpec.js to destination src/test/javascripts/todo/todo/todo.todoSpec.js
+| Rendered template NgModule.js to destination grails-app/assets/javascripts/todo/todo/todo.todo.js
+| Rendered template NgDomainSpec.js to destination src/test/javascripts/todo/domain/TodoSpec.js
+| Rendered template NgDomain.js to destination grails-app/assets/javascripts/todo/domain/Todo.js
+----
+
+The `todo/domain/Todo.js` file will export a module that will allow us to write code such as `Todo.list()`,
+`todo.save()`, etc. A-la-Grails! On such methods, Angular JS will transparently excute an HTTP request to the backend,
+by taking into account the REST mappings. For example, `Todo.list()` will make an HTTP GET request, `todo.delete()`
+will do a DELETE, etc.
+
+icon:hand-o-right[] There's just a change we need to do on it: as our backend is at `/todos` and not `/todo`, find the
+string `"todo/:id"` and replace it by `"todos/:id"`.
+
+icon:hand-o-right[] The root module, generated at `grails-app/assets/javascripts/todo/todo.todo.js`, is named a bit
+repetitive, so rename it to `app.js`, and leave it with the following content:
+
+[source,javascript]
+----
+//= wrapped
+//= require /angular/angular
+//= require /angular/angular-resource
+//= require_self
+//= require_tree services
+//= require_tree controllers
+//= require_tree directives
+//= require_tree domain
+//= require_tree templates
+
+angular.module("todo", ['ngResource']);
+----
+
+That will be our main file to be loaded in `index.gsp`. As you can see, it contains asset-pipeline instructions to
+include other dependencies such as Angular itself, as well as our application code.
+
+The dependencies like `angular` and `angular-resource` are fetched by the `bower-installer` Gradle plugin. You will
+find a `bower { ... }` block in `build.gradle`. Those dependencies are gently handled by asset-pipeline, which takes
+action during the build process, to bundle and minimise them into our `app.js` file. In development mode, however,
+minimisation and bundling is not performed.
+
+icon:hand-o-right[] Now, let's create a controller by running the following command:
+
+----
+$ grails create-ng-controller todo
+| Warning Destination file src/test/javascripts/todo/todo/todo.todoSpec.js already exists, skipping...
+| Rendered template NgModule.js to destination grails-app/assets/javascripts/todo/todo/todo.todo.js
+| Rendered template NgControllerSpec.js to destination src/test/javascripts/todo/controllers/todoControllerSpec.js
+| Rendered template NgController.js to destination grails-app/assets/javascripts/todo/controllers/todoController.js
+----
+
+icon:hand-o-right[] The controller code should look like this:
+
+[source,javascript]
+----
+//= wrapped
+
+angular
+    .module("todo")
+    .controller("TodoController", TodoController);
+
+function TodoController(Todo) {
+    var vm = this;
+
+    vm.todos = Todo.list();
+
+    vm.newTodo = new Todo();
+
+    vm.save = function() {
+        vm.newTodo.$save({}, function() {
+            vm.todos.push(angular.copy(vm.newTodo));
+            vm.newTodo = new Todo();
+        });
+    };
+
+    vm.delete = function(todo) {
+        todo.$delete({}, function() {
+            var idx = vm.todos.indexOf(todo);
+            vm.todos.splice(idx, 1);
+        });
+    };
+
+    vm.update = function(todo) {
+        todo.$update();
+    };
+}
+----
+
+Now, let's write the view code.
+
+icon:hand-o-right[] First of all, make sure our entry point `app.js` is loaded in `index.gsp`. Find
+the `<asset:javascript>` tag right before the closing `</body>`, and change it to point to our file:
+
+[source,html]
+----
+<asset:javascript src="/todo/app.js" />
+----
+
+icon:hand-o-right[] Then, find the `<body>` tag and change it so it refers to our controller instead of the
+default one that we deleted. It should look like:
+
+[source,html]
+----
+<body ng-app="todo" ng-controller="TodoController as vm">
+----
+
+icon:hand-o-right[] Finally, inside the `<section>` tag, where we left a placeholder comment, write the following code:
+
+[source,html]
+----
+<div class="form">
+    <input type="text" ng-model="vm.newTodo.description" />
+    <button type="button" ng-click="vm.save()">add</button>
+</div>
+
+<div ng-include="'/todo/list.html'"></div>
+----
+
+icon:hand-o-right[] Now, create the following file:
+
+[source,html]
+.`grails-app/assets/javascripts/todo/templates/list.tpl.html`
+----
+<table>
+    <tbody>
+        <tr ng-repeat="t in vm.todos">
+            <td>
+                {{t.description}}
+            </td>
+            <td>
+                <input type="checkbox" ng-model="t.done" ng-click="vm.update(t)" />
+            </td>
+            <td>
+                <button type="button" ng-click="vm.delete(t)">Delete</button>
+            </td>
+        </tr>
+    </tbody>
+</table>
+----
+
+And you are done! Go back to your browser and load http://localhost:8080[]:
+
+image::todo.png[]
+
+icon:hand-o-right[] With your browser's developer console open, try to create new todos, mark them as complete or
+delete them, and you will see how Angular JS issues HTTP request to the backend we created in the first exercise.
+
+== Adding security with Spring Security REST (50 minutes)
+
+TIP: For this exercise, you can just continue working in the same project as the previous exercise. The final solution
+is provided to you in the `ex03/solution` folder.
+
+=== Introduction to Spring Security REST (10 minutes)
+
+http://alvarosanchez.github.io/grails-spring-security-rest/[Spring Security REST] is a Grails plugin that allows you to
+use Spring Security for a stateless, token-based, RESTful authentication.
+
+The typical flow could be the following:
+
+.Sequence diagram overview of the plugin behavior
+image::http://alvarosanchez.github.io/grails-spring-security-rest/latest/docs/images/rest.png[]
+
+. The client application requests and endpoint that requires authentication, so the server responds with a 401 response.
+. The client redirects the user to the login form.
+. The user enter credentials, and the client sends a request to the authentication endpoint. The server validates credentials, and if valid, generates, stores and sends back a token to the client.
+. The client then stores the token internally. It will be sent on every API method request.
+. The client sends again a request to the protected resource, passing the token as an HTTP header.
+. The server validates the token, and if valid, executes the actual operation requested.
+
+As per the http://en.wikipedia.org/wiki/Representational_state_transfer[REST definition], the client is transferring its
+state on every request so the server is truly stateless.
+
+The plugin helps you to wire your existing Spring Security authentication mechanism, provides you
+with ready-to-use token generation strategies and comes prepackaged with JWT, Memcached, GORM, Redis
+and Grails Cache support for token storage.
+
+In this exercise we will use JWT. JSON Web Token (JWT) is an http://tools.ietf.org/html/draft-ietf-oauth-json-web-token[IETF standard] (in progress)
+which defines a secure way to encapsulate arbitrary data that can be sent over unsecure URL's.
+
+Generally speaking, JWT's can be useful in the following use cases:
+
+* When generating "one click" action emails, like "delete this comment" or "add this to favorites". Instead of giving
+  the users URL's like `/comment/delete/123`, you can give them something like `/comment/delete/<JWT_TOKEN>`, where the
+  `JWT_TOKEN` contains encapsulated information about the user and the comment, in a safe way, so authentication is not required.
+
+* To achieve single sign-on, by sharing a JWT across applications.
+
+In the context of authentication and authorization, JWT will help you implement a stateless implementation, as the
+principal information is stored directly in the JWT.
+
+This is how a JWT looks like:
+
+image::http://alvarosanchez.github.io/grails-spring-security-rest/latest/docs/images/jwt.png[]
+
+===== Header
+
+A base64-encoded JSON like:
+
+[source,javascript]
+----
+{
+    "alg": "HS256",
+    "typ": "JWT"
+}
+----
+
+===== Claims
+
+A base64-encoded JSON like:
+
+[source,javascript]
+----
+{
+    "exp": 1422990129,
+    "sub": "jimi",
+    "roles": [
+        "ROLE_ADMIN",
+        "ROLE_USER"
+    ],
+    "iat": 1422986529
+}
+----
+
+===== Signature
+
+Depends on the algorithm specified on the header, it can be a digital signature of the base64-encoded header and claims,
+or an encryption of them using RSA.
+
+=== Securing the REST API (20 minutes)
+
+icon:hand-o-right[] To install the plugin, add this to your `dependencies { ... }` block in `build.gradle`:
+
+[source,groovy]
+----
+compile "org.grails.plugins:spring-security-rest:2.0.0.M2"
+----
+
+icon:hand-o-right[] Run `grails compile` to resolve dependencies and ensure everything is correct. If necessary,
+refresh also the project in your IDE (ie: refresh Gradle project in Intellij IDEA). Then, we need to generate our User,
+Role and UserRole domain classes:
+
+----
+$ grails s2-quickstart todo User Role
+| Creating User class 'User' and Role class 'Role' in package 'todo'
+| Rendered template Person.groovy.template to destination grails-app/domain/todo/User.groovy
+| Rendered template Authority.groovy.template to destination grails-app/domain/todo/Role.groovy
+| Rendered template PersonAuthority.groovy.template to destination grails-app/domain/todo/UserRole.groovy
+|
+************************************************************
+* Created security-related domain classes. Your            *
+* grails-app/conf/application.groovy has been updated with *
+* the class names of the configured domain classes;        *
+* please verify that the values are correct.               *
+************************************************************
+----
+
+icon:hand-o-right[] The above command will create the file `grails-app/conf/application.groovy`. In order to secure our
+API, we need to replace the chain with pattern `/**` with this one:
+
+[source,groovy]
+----
+[pattern: '/api/**',         filters: 'JOINED_FILTERS,-anonymousAuthenticationFilter,-exceptionTranslationFilter,-authenticationProcessingFilter,-securityContextPersistenceFilter,-rememberMeAuthenticationFilter']
+----
+
+icon:hand-o-right[] Notice that we are appling a stateless chain to the pattern `/api/**`, so we need to reflect this
+change in a number of places:
+
+* In the URL mappings file.
+* In the `Todo.js` Angular domain.
+
+icon:hand-o-right[] Now, add some data in `BootStrap.groovy`:
+
+[source,groovy]
+----
+Role admin = new Role("ROLE_ADMIN").save()
+User user = new User("user", "pass").save()
+UserRole.create(user, admin, true)
+----
+
+icon:hand-o-right[] Finally, let's restrict our API to be accessed only for `ROLE_ADMIN` users:
+
+[source,groovy]
+.`TodoController.groovy`
+----
+package todo
+
+import grails.plugin.springsecurity.annotation.Secured
+import grails.rest.RestfulController
+
+@Secured(['ROLE_ADMIN'])
+class TodoController extends RestfulController {
+
+...
+
+}
+----
+
+icon:hand-o-right[] If you run the application now and try to access the endpoint with `curl`, you'll receive an error:
+
+[source,javascript]
+----
+$ curl -i 0:8080/api/todos
+HTTP/1.1 401 Unauthorized
+Server: Apache-Coyote/1.1
+WWW-Authenticate: Bearer
+Content-Type: application/json;charset=UTF-8
+Transfer-Encoding: chunked
+Date: Wed, 01 Jun 2016 03:59:56 GMT
+
+{"timestamp":1464753596208,"status":401,"error":"Unauthorized","message":"No message available","path":"/api/todos"}
+----
+
+As we saw in the introduction, we need to obtain a token first, and then pass it to the endpoint.
+
+icon:hand-o-right[] To get a token, make a request to the login endpoint provided by the plugin:
+
+[source,javascript]
+----
+$ curl -i -H "Content-Type: application/json" --data '{"username":"user","password":"pass"}' 0:8080/api/login
+HTTP/1.1 200 OK
+Server: Apache-Coyote/1.1
+Cache-Control: no-store
+Pragma: no-cache
+Content-Type: application/json;charset=UTF-8
+Content-Length: 2152
+Date: Wed, 01 Jun 2016 04:04:51 GMT
+
+{"username":"user","roles":["ROLE_ADMIN"],"token_type":"Bearer","access_token":"eyJhbGciOiJIUzI1NiJ9...","expires_in":3600,"refresh_token":"eyJhbGciOiJIUzI1NiJ9...."}
+----
+
+icon:hand-o-right[] Copy the `access_token` part of the response, and make a request to the original endpoint, passing
+the token in a header:
+
+[source,javascript]
+----
+$ curl -i -H "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...." 0:8080/api/todos
+HTTP/1.1 200 OK
+Server: Apache-Coyote/1.1
+X-Application-Context: application:development
+Content-Type: application/json;charset=UTF-8
+Transfer-Encoding: chunked
+Date: Wed, 01 Jun 2016 04:08:14 GMT
+
+[{"_links":{"self":{"href":"http://0:8080/api/todos/1","hreflang":"en_US","type":"application/hal+json"}},"id":1,"description":"Todo 1","done":false},{"_links":{"self":{"href":"http://0:8080/api/todos/2","hreflang":"en_US","type":"application/hal+json"}},"id":2,"description":"Todo 2","done":false},{"_links":{"self":{"href":"http://0:8080/api/todos/3","hreflang":"en_US","type":"application/hal+json"}},"id":3,"description":"Todo 3","done":false},{"_links":{"self":{"href":"http://0:8080/api/todos/4","hreflang":"en_US","type":"application/hal+json"}},"id":4,"description":"Todo 4","done":false},{"_links":{"self":{"href":"http://0:8080/api/todos/5","hreflang":"en_US","type":"application/hal+json"}},"id":5,"description":"Todo 5","done":false}]
+----
+
+And voilà! Our API is now sucessfully secured with Spring Security REST.
+
+=== Integrating AngularJS with Spring Security REST (20 minutes)
+
+The final step of this workshop is to introduce a login workflow in the front-end, and put the necessary Angular JS
+infrastructure to make sure that the token, once obtained, is transparently sent on every request.
+
+icon:hand-o-right[] First of all, in `index.gsp` we need to display a login form if the user is not authenticated. Put
+the following code as the body of the `<section>` tag:
+
+[source,javascript]
+----
+<div ng-switch="vm.authenticated">
+    <div ng-switch-when="true">
+        <div ng-include="'/todo/list.html'"></div>
+    </div>
+    <div ng-switch-when="false">
+        <div ng-include="'/todo/login.html'"></div>
+    </div>
+</div>
+----
+
+icon:hand-o-right[] Then, create such template:
+
+[source,html]
+.`grails-app/assets/javascripts/todo/templates/login.tpl.html`
+----
+<table>
+    <tbody>
+    <tr>
+        <td>
+            Username:
+        </td>
+        <td>
+            <input type="text" name="username" ng-model="vm.user.username" />
+        </td>
+    </tr>
+    <tr>
+        <td>
+            Password:
+        </td>
+        <td>
+            <input type="password" name="password" ng-model="vm.user.password" />
+        </td>
+    </tr>
+    <tr>
+        <td colspan="2">
+            <button type="button" ng-click="vm.login()">Login</button>
+        </td>
+    </tr>
+    </tbody>
+</table>
+----
+
+icon:hand-o-right[] Now, we need to put the necessary logic in the controller to handle the authentication, as well as
+the submission of the token once obtained:
+
+[source,javascript]
+.`grails-app/assets/javascripts/todo/controllers/todoController.js`
+----
+//= wrapped
+
+angular
+    .module("todo")
+    .factory('authInterceptor', function ($rootScope, $window) {
+        return {
+            request: function (config) {
+                config.headers = config.headers || {};
+                if ($window.sessionStorage.token) {
+                    config.headers.Authorization = 'Bearer ' + $window.sessionStorage.token;
+                }
+                return config;
+            }
+        };
+    })
+    .config(function ($httpProvider) {
+        $httpProvider.interceptors.push('authInterceptor');
+    })
+    .controller("TodoController", TodoController);
+
+function TodoController(Todo, $http, $window) {
+    var vm = this;
+
+    vm.authenticated = false;
+    vm.user = {};
+
+    vm.todos = [];
+
+    vm.newTodo = new Todo();
+
+    vm.login = function () {
+        $http.post('/api/login', {
+            username: vm.user.username,
+            password: vm.user.password
+        }).then(function (response) {
+            vm.authenticated = true;
+            $window.sessionStorage.token = response.data.access_token;
+            vm.todos = Todo.list();
+        });
+    };
+
+    vm.save = function() {
+        vm.newTodo.$save({}, function() {
+            vm.todos.push(angular.copy(vm.newTodo));
+            vm.newTodo = new Todo();
+        });
+    };
+
+    vm.delete = function(todo) {
+        todo.$delete({}, function() {
+            var idx = vm.todos.indexOf(todo);
+            vm.todos.splice(idx, 1);
+        });
+    };
+
+    vm.update = function(todo) {
+        todo.$update();
+    };
+}
+----
+
+And that's all!
+
+icon:hand-o-right[] You can run again the application, with your browser's developer console opened, and you will see
+how the auhentication is performed, and once logged in, you can also see how the token is sent in the header.
+
+If you liked this workshop https://twitter.com/home?status=Check%20out%20%40alvaro_sanchez's%20cool%20workshop%20about%20%40grailsframework%20%40angularjs%20%26%20%40springsecurity%3A%20http%3A//alvarosanchez.github.io/grails-angularjs-springsecurity-workshop%20%23grailsfw%20%40groovylang[icon:twitter[] share it on Twitter!]
