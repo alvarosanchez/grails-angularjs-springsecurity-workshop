@@ -1,5 +1,3 @@
-= grails-angularjs-springsecurity-workshop
-
 = Creating applications with Grails, Angular JS and Spring Security
 
 Workshop to create an application using:
