@@ -12,7 +12,7 @@ To complete this workshop, you should have installed locally:
 * JDK 7 or 8.
 * Git.
 * Gradle 2.9+.
-* Grails 3.1.6.
+* Grails 3.2.6.
 
 Also, although not mandatory, it's highly recommended to use https://www.jetbrains.com/idea/[IntelliJ IDEA], arguably
 the best IDE for Groovy and Grails development. You can just use the Community Edition if you want to.
@@ -91,7 +91,7 @@ icon:hand-o-right[] Although we will use the `angular` profile in future exercis
 `rest-api` profile. We will also pick the `hibernate` and `json-views` features:
 
 ----
-$ grails create-app -profile rest-api -features hibernate,json-views todo
+$ grails create-app -profile rest-api -features hibernate5,json-views todo
 | Application created at /tmp/todo
 ----
 
@@ -461,8 +461,8 @@ angular.module("todo", ['ngResource']);
 That will be our main file to be loaded in `index.gsp`. As you can see, it contains asset-pipeline instructions to
 include other dependencies such as Angular itself, as well as our application code.
 
-The dependencies like `angular` and `angular-resource` are fetched by the `bower-installer` Gradle plugin. You will
-find a `bower { ... }` block in `build.gradle`. Those dependencies are gently handled by asset-pipeline, which takes
+The dependencies like `angular` and `angular-resource` are fetched by the `client-dependencies` Gradle plugin. You will
+find a `clientDependencies { ... }` block in `build.gradle`. Those dependencies are gently handled by asset-pipeline, which takes
 action during the build process, to bundle and minimise them into our `app.js` file. In development mode, however,
 minimisation and bundling is not performed.
 
@@ -898,3 +898,8 @@ icon:hand-o-right[] You can run again the application, with your browser's devel
 how the auhentication is performed, and once logged in, you can also see how the token is sent in the header.
 
 If you liked this workshop https://twitter.com/home?status=Check%20out%20%40alvaro_sanchez's%20cool%20workshop%20about%20%40grailsframework%20%40angularjs%20%26%20%40springsecurity%3A%20http%3A//alvarosanchez.github.io/grails-angularjs-springsecurity-workshop%20%23grailsfw%20%40groovylang[icon:twitter[] share it on Twitter!]
+
+== Acknowledgements
+
+* https://github.com/sdelamo[Sergio del Amo], for his fantastic help upgrading
+  this workshop to Grails 3.2.6.

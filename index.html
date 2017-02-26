@@ -542,6 +542,7 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="#_integrating_angularjs_with_spring_security_rest_20_minutes">3.3. Integrating AngularJS with Spring Security REST (20 minutes)</a></li>
 </ul>
 </li>
+<li><a href="#_acknowledgements">4. Acknowledgements</a></li>
 </ul>
 </div>
 </div>
@@ -569,7 +570,7 @@ table.CodeRay td.code>pre{padding:0}
 <p>Gradle 2.9+.</p>
 </li>
 <li>
-<p>Grails 3.1.6.</p>
+<p>Grails 3.2.6.</p>
 </li>
 </ul>
 </div>
@@ -696,7 +697,7 @@ Provided Commands:
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ grails create-app -profile rest-api -features hibernate,json-views todo
+<pre>$ grails create-app -profile rest-api -features hibernate5,json-views todo
 | Application created at /tmp/todo</pre>
 </div>
 </div>
@@ -1212,8 +1213,8 @@ angular.module(<span class="string"><span class="delimiter">&quot;</span><span c
 include other dependencies such as Angular itself, as well as our application code.</p>
 </div>
 <div class="paragraph">
-<p>The dependencies like <code>angular</code> and <code>angular-resource</code> are fetched by the <code>bower-installer</code> Gradle plugin. You will
-find a <code>bower { &#8230;&#8203; }</code> block in <code>build.gradle</code>. Those dependencies are gently handled by asset-pipeline, which takes
+<p>The dependencies like <code>angular</code> and <code>angular-resource</code> are fetched by the <code>client-dependencies</code> Gradle plugin. You will
+find a <code>clientDependencies { &#8230;&#8203; }</code> block in <code>build.gradle</code>. Those dependencies are gently handled by asset-pipeline, which takes
 action during the build process, to bundle and minimise them into our <code>app.js</code> file. In development mode, however,
 minimisation and bundling is not performed.</p>
 </div>
@@ -1749,10 +1750,23 @@ how the auhentication is performed, and once logged in, you can also see how the
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="_acknowledgements">4. Acknowledgements</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://github.com/sdelamo">Sergio del Amo</a>, for his fantastic help upgrading
+this workshop to Grails 3.2.6.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-06-01 06:36:48 +02:00
+Last updated 2017-02-26 20:06:56 +01:00
 </div>
 </div>
 </body>
