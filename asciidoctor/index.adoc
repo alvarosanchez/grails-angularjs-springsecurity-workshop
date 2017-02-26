@@ -461,8 +461,8 @@ angular.module("todo", ['ngResource']);
 That will be our main file to be loaded in `index.gsp`. As you can see, it contains asset-pipeline instructions to
 include other dependencies such as Angular itself, as well as our application code.
 
-The dependencies like `angular` and `angular-resource` are fetched by the `bower-installer` Gradle plugin. You will
-find a `bower { ... }` block in `build.gradle`. Those dependencies are gently handled by asset-pipeline, which takes
+The dependencies like `angular` and `angular-resource` are fetched by the `client-dependencies` Gradle plugin. You will
+find a `clientDependencies { ... }` block in `build.gradle`. Those dependencies are gently handled by asset-pipeline, which takes
 action during the build process, to bundle and minimise them into our `app.js` file. In development mode, however,
 minimisation and bundling is not performed.
 
