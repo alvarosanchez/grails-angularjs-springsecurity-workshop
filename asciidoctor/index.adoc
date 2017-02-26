@@ -898,3 +898,8 @@ icon:hand-o-right[] You can run again the application, with your browser's devel
 how the auhentication is performed, and once logged in, you can also see how the token is sent in the header.
 
 If you liked this workshop https://twitter.com/home?status=Check%20out%20%40alvaro_sanchez's%20cool%20workshop%20about%20%40grailsframework%20%40angularjs%20%26%20%40springsecurity%3A%20http%3A//alvarosanchez.github.io/grails-angularjs-springsecurity-workshop%20%23grailsfw%20%40groovylang[icon:twitter[] share it on Twitter!]
+
+== Acknowledgements
+
+* https://github.com/sdelamo[Sergio del Amo], for his fantastic help upgrading
+  this workshop to Grails 3.2.6.
