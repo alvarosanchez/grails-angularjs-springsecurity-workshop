@@ -97,6 +97,6 @@
         <g:message code="spinner.alt" default="Loading&hellip;"/>
     </div>
 
-    <asset:javascript src="/todo/app.js" />
+    <asset:javascript src="/todo/app" />
 </body>
 </html>
