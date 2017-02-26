@@ -7,3 +7,5 @@ target/
 *.iml
 *.iws
 node_modules/
+.DS_Store
+/*/solution/todo/grails-app/assets/vendor
