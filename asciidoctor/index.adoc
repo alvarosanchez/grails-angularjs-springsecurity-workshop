@@ -12,7 +12,7 @@ To complete this workshop, you should have installed locally:
 * JDK 7 or 8.
 * Git.
 * Gradle 2.9+.
-* Grails 3.1.6.
+* Grails 3.2.6.
 
 Also, although not mandatory, it's highly recommended to use https://www.jetbrains.com/idea/[IntelliJ IDEA], arguably
 the best IDE for Groovy and Grails development. You can just use the Community Edition if you want to.
@@ -91,7 +91,7 @@ icon:hand-o-right[] Although we will use the `angular` profile in future exercis
 `rest-api` profile. We will also pick the `hibernate` and `json-views` features:
 
 ----
-$ grails create-app -profile rest-api -features hibernate,json-views todo
+$ grails create-app -profile rest-api -features hibernate5,json-views todo
 | Application created at /tmp/todo
 ----
 
